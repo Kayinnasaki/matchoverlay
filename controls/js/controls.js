@@ -1,5 +1,6 @@
 const ws = new WebSocket("wss://"+window.location.hostname+":8082"); // I hate working with SSL
-const sblocation = "https://kayin.moe/twitchoverlay3/";
+let sblocation = window.location.href.replace("controls/", "");
+//sblocation = sblocation.remove("controls/";
 
 const p1name = document.getElementById('p1name');
 const p2name = document.getElementById('p2name');
@@ -241,9 +242,8 @@ function clearall(){
 }
 
 function sblinkupdate(){
-    let sblink = sblocation + "?id=" + sbid;
-    document.getElementById('sblink').innerHTML = sblink;
-    document.getElementById('sblink').href = sblink;
+    document.getElementById('sblink').innerHTML = sblocation;
+    document.getElementById('sblink').href = sblocation;
     seturlparam();
 }
 

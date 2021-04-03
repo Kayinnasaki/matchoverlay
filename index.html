@@ -106,7 +106,7 @@ body {
 </body>
 
 <script>
-const ws = new WebSocket("wss://kayin.moe:8083");
+const ws = new WebSocket("wss://" + window.location.hostname + ":8083");
 let sbid = getUrlParam('id','default');
 if (sbid == ""){sbin = "default";}
 
