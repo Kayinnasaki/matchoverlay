@@ -9,30 +9,39 @@ const fs = require('fs');
 // Half of the stuff for getting SSL to work is Cargo Cult Code
 const config = require('./config');
 
-let privateKey = fs.readFileSync(config.privateKey, 'utf8');
-let certificate = fs.readFileSync(config.certificate, 'utf8');
-var credentials = { key: privateKey, cert: certificate };
-var https = require('https');
+if (config.privateKey !== ""){
+    console.log("Has Certs: Starting with WSS")
+    let privateKey = fs.readFileSync(config.privateKey, 'utf8');
+    let certificate = fs.readFileSync(config.certificate, 'utf8');
+    var credentials = { key: privateKey, cert: certificate };
+    var https = require('https');
 
-// For Score Boards
-var httpsServer = https.createServer(credentials);
-httpsServer.listen(8083);
+    // For Score Boards
+    var httpsServer = https.createServer(credentials);
+    httpsServer.listen(8083);
 
-var WebSocketServer = require('ws').Server;
-var wss2 = new WebSocketServer({
-    server: httpsServer
-});
+    var WebSocketServer = require('ws').Server;
+    var wss2 = new WebSocketServer({
+        server: httpsServer
+    });
 
-// For Control Boards
-var httpsServer2 = https.createServer(credentials);
-httpsServer2.listen(8082);
+    // For Control Boards
+    var httpsServer2 = https.createServer(credentials);
+    httpsServer2.listen(8082);
 
-var wss = new WebSocketServer({
-    server: httpsServer2
-});
+    var wss = new WebSocketServer({
+        server: httpsServer2
+    });
+} else {
+    console.log("No Certs: Starting with WS")
+
+    var wss  = new WebSocket.Server({ port: 8082}); // For Control Boards
+    var wss2 = new WebSocket.Server({ port: 8083}); // For Score Displays
+}
 
 // Default Info
 let scoreboard = {};
+sbCheck("default");
 let lastclient = "";
 
 //Challonge API Info

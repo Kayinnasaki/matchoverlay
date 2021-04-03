@@ -106,14 +106,30 @@ body {
 </body>
 
 <script>
-const ws = new WebSocket("wss://" + window.location.hostname + ":8083");
-let sbid = getUrlParam('id','default');
-if (sbid == ""){sbin = "default";}
+const urlParams = new URLSearchParams(window.location.search);
+const nossl = urlParams.get('nossl')
+
+let sbid = getUrlParam('id');
+console.log(sbid)
+if (sbid == undefined){window.location.search = window.location.search + "?id=default"}
+
+if (nossl == "1"){
+	var ws = new WebSocket("ws://" + window.location.hostname + ":8083");
+}else{
+	var ws = new WebSocket("wss://" + window.location.hostname + ":8083");
+}
 
 ws.addEventListener("open", () => {
     console.log("We are connected!");
 	ws.send(sbid)
 });
+
+ws.onerror = function(event) {
+	console.log("FAILURE");
+	if (nossl !== "1"){
+		window.location.search = window.location.search + "&nossl=1";
+	}
+}
 
 ws.addEventListener("message", ({ data }) => {
     console.log(data);

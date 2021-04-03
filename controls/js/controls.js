@@ -1,6 +1,16 @@
-const ws = new WebSocket("wss://"+window.location.hostname+":8082"); // I hate working with SSL
+// Checks for URL param to skip SSL. Should only be used for local testing
+const urlParams = new URLSearchParams(window.location.search);
+const nossl = urlParams.get('nossl');
+console.log("nossl: " + nossl);
+if (nossl == "1"){
+    console.log("Attempting without SSL")
+	var ws = new WebSocket("ws://" + window.location.hostname + ":8082");
+} else {
+    console.log("Attempting with SSL")
+	var ws = new WebSocket("wss://" + window.location.hostname + ":8082");
+}
+
 let sblocation = window.location.href.replace("controls/", "");
-//sblocation = sblocation.remove("controls/";
 
 const p1name = document.getElementById('p1name');
 const p2name = document.getElementById('p2name');
@@ -16,11 +26,13 @@ document.getElementById("username").value = slugify(localStorage.getItem('name')
 let uname = document.getElementById("username").value
 let sbid = "default"; // Declare Early due to Type Issues
 
-console.log("what is... " + getUrlParam('id'));
+console.log("id: " + getUrlParam('id'));
 // URL IDs overwrite Local Storage when setting the SB ID
-if (getUrlParam('id') == null){
-    sbid = slugify(localStorage.getItem('sbid')) || getUniqueID();
+if (getUrlParam('id') == undefined){
+    console.log("generating unique ID")
+    sbid = slugify(localStorage.getItem('sbid') || getUniqueID());
 } else {
+    console.log("Default")
     sbid = getUrlParam('id','default');
 }
 
@@ -32,6 +44,13 @@ ws.addEventListener("open", () => {
     sendName();
 });
 
+ws.onerror = function(event) {
+	console.log("FAILURE");
+	if (nossl !== "1"){
+		window.location.search = window.location.search + "&nossl=1";
+        // Lets Try taht without SSL...
+	}
+}
 
 ws.addEventListener("message", ({ data }) => {
     console.log(data);
