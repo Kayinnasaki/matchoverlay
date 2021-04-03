@@ -1,0 +1,141 @@
+<html>
+<head>
+    <link rel="stylesheet" href="style.css">
+    <meta charset="utf-8"/>
+</head>
+
+<body>
+<div id="topitems">
+    <div id="controlbox">
+        <div class="topbtn">
+            <div class="p1 namebox">
+                <div class="squeeze sr"><span id="p1namebig" class="serverside"></span><span class="serverside"> : </span><span id="p1scorebig" class="serverside"></span></div>
+                <span class="arrow"><input class="namelist topinput" list="players" id="p1name"  name="p1name" placeholder="Player 1" temp="" onmouseover="this.temp=this.value; this.placeholder=this.temp; this.value='';" onmouseout="this.value=this.temp;"></span>
+            </div>
+            <div class="p2 namebox">
+                <div class="squeeze sl"><span id="p2scorebig" class="serverside"></span><span class="serverside"> : </span><span id="p2namebig" class="serverside"></span></div>
+                <span class="arrow"><input class="namelist topinput" list="players" id="p2name" name="p2name" placeholder="Player 2" temp="" onmouseover="this.temp=this.value; this.placeholder=this.temp; this.value='';" onmouseout="this.value=this.temp;"></span>
+            </div>
+        </div>
+
+        <div class="centerbtn">
+            <div class="scorebox">
+                <div class="scoretab top" onClick="sbincrement(1, 'p1score')">+</div>
+                <input class="bignumber topinput" type="number" id="p1score" name="p1score" min="-99" max="99">
+                <div class="scoretab bottom" onClick="sbincrement(-1, 'p1score')">-</div>
+            </div>
+
+            <div class="fl">
+                <input class="topinput bigbutton" type="button" name="clear" value= "Clear" onClick="clearall()"><br>
+                <input class="topinput bigbutton" type="button" name="switch" value= "Swap" onClick="swap()"><br>
+                <input class="topinput bigbutton" type="button" name="update" value="Submit Info" id="update"><br>
+                <input class="topinput bigbutton" type="button" name="refresh" value="Refresh" id="refresh" onClick= "syncInputs()">
+            </div>
+
+            <div class="scorebox">
+                <div class="scoretab top" onClick="sbincrement(1, 'p2score')">+</div>
+                <input class="bignumber topinput" type="number" id="p2score" name="p2score" min="-99" max="99">  
+                <div class="scoretab bottom" onClick="sbincrement(-1, 'p2score')">-</div>
+            </div>
+        </div>
+
+        
+        <div class="bottom">
+            <div class="inlinediv">
+                User Name<br>
+                <input class="topinput" type="text" class="binput" id="username" name="username" value="">
+            </div>
+            <div class="inlinediv">
+                Match Title<br>
+                <input class="topinput" type="text" class="binput" id="title" name="title">
+            </div>
+<!--        <div class="textdiv">
+                Tourney ID<br>
+                <select for="tid" class="binput" id="tid" name="tid" onchange="plistupdate()">
+                    <option value="full">Full</option>
+                    <option value="8m2mobdj">Beginner</option>
+                    <option value="lk4rk6al">Ex</option>
+                </select>
+            </div> -->
+        </div>
+
+    </div>
+
+    <div id="userlist"></div>
+</div>
+
+<br>
+<div id="bottomitems">
+    <div id="sbidbar">Scoreboard ID: <input type="text" class="sbutton topinput" id="sbid" name="sbid" value=""><input class="sbutton" type="button" name="Generate" value= "Generate" onClick="document.getElementById('sbid').value = getUniqueID()"><input class="sbutton" type="button" name="Set ID" value= "Set ID" onClick="sendName()"><br><br>
+    <a id="sblink" name="sblink" target="_blank" rel="noopener noreferrer"></a></div>
+    
+    <a id="popout" href="frame.html" onclick="openwindow(this.href); return false;">Pop Out</a>
+</div>
+<br>
+
+<button class="collapsible">Tournament ID and Player Information</button>
+    <div class="content">
+        <div class="playerconfig">
+            <textarea name="playerlist" spellcheck="false" id="playerlist" placeholder='Player 1&#10;Player 2&#10;Plyaer 3&#10;...'></textarea>
+        </div>
+        
+        <div>
+            <br>
+            <input type="checkbox" id="serverupdate" name="serverupdate" onclick="suBoxChange()" checked>
+            <label for="serverupdate">Recieve Player List Updates from Server</label><hr>
+            <button type="button" class="midbutton" onclick="plWorkToPl();">Update<br>Player List</button> <button type="button"class="midbutton" onclick="plPush();">Push to<br>Server</button><br><br>
+            <button type="button" class="midbutton" onclick="plLocalLoad();">Load from Local Storage</button> <button type="button"class="midbutton"  onclick="plLocalSave();">Save to Local Storage</button><hr>
+            
+            <strong>Smash GG</strong><br>
+            <div class="tidrightbox">Tournament URL:</div>&nbsp;<input type="txt" class="tidinputs" id="sggurl"><br><button type="button" onclick="plistSmashgg();">Pull Down List</button> <button type="button" onclick="saveSmashgg();">Save</button> <button type="button" onclick="loadSmashgg();">Load</button> 
+
+            <br><br>
+            <strong>Challonge</strong><br>
+            <div class="tidrightbox">Community ID:</div>&nbsp;<input type="txt" class="tidinputs" id="chcid"><br>
+            <div class="tidrightbox">Tournament ID:</div>&nbsp;<input type="txt" class="tidinputs" id="chtid"><br><button type="button" onclick="plistChallonge();">Pull Down List</button> <button type="button" onclick="saveChallonge();">Save</button> <button type="button" onclick="loadChallonge();">Load</button> 
+            <hr>
+            Press <strong>Update Player List</strong> to move your player list to the drop down menues above. <strong>Push to Server</strong>
+            pushes the playerlist to anyone else you might have operating the scoreboard.
+            <br><br>
+            <strong>Load</strong> and <strong>Save</strong> will save data to your browser's storage for<br>retrieval later. Use it to remember settings
+            or playerlists for later.
+            <br><br>
+            <strong>Smash GG</strong> url's should be formated like:<p style="font-size:9pt; line-height: 0px;">https://smash.gg/tournament/iron-grid-online-1/event/guilty-gear-r-singles/overview</p>
+
+        </div>
+    </div>
+<br>
+
+<button class="collapsible">Help</button>
+    <div class="content">
+        <div class="extext">
+        <h3>IDs and sharing sessions</h3>
+        Your Scoreboard ID indicates which instance of the scoreboard you are editing. Your URL will update to your ID to allow you to quickly share
+        this panel with anyone who you need to help operate the scoreboard with. The Scoreboard Panel also includes a link to the actual scoreboard,
+        which you can plug into a browser source in OBS.
+        
+        <h3>Controls and Updates</h3>
+        The topmost bar on the scoreboard is the <em>Live Score</em>. It is what is showing on the scoreboard right now. The area below that is your
+        work area. Score updates will automatically be sent to the Live Score but names need to be updated by either submitting or pressing refresh.
+        This is to prevent people stepping on each other's inputs by forcing updates mid edit<br><br>
+
+        If Refresh is red that means there are updates you aren't synced with. You may wish to refresh to resync, or continue your edits and send them
+        instead. User names in the user list will flash when they submit changes, letting you know who is paying attention and how active they are.
+        </div>
+    </div>
+
+
+<datalist id="players">         
+</datalist>
+
+</body>
+</html>
+
+<script type="text/javascript" src="js/plcontrols.js"></script>
+<script type="text/javascript" src="js/utils.js"></script>
+<script type="text/javascript" src="js/controls.js"></script>
+
+
+<script>
+
+  </script>

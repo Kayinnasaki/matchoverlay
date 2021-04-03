@@ -1,0 +1,152 @@
+<html>
+<head>
+<style>
+body {
+	font-family: MyriadPro-Regular, 'Myriad Pro Regular', MyriadPro, 'Myriad Pro', Helvetica, Arial, sans-serif;
+}
+
+#overlay {
+	position: relative;	
+	left: 0px;
+	top: 0px;
+	background-image: url("eventoverlay.png");
+	width:1920px;
+	height:1080px;
+
+}
+
+.p1name {
+	position: absolute;
+	font-size: 26pt;
+	color: white;
+	left: 200px;
+	top: 0px;
+	width: 600px;
+	text-align: right;
+}
+
+.p2name {
+	position: absolute;
+	font-size: 26pt;
+	color: white;
+	right: 200px;
+	top: 0px;
+	width: 600px;
+	text-align: left;
+
+}
+
+.p1name {
+	position: absolute;
+	font-size: 26pt;
+	color: white;
+	left: 200px;
+	top: 0px;
+	width: 600px;
+	text-align: right;
+
+}
+
+.p1score {
+	position: absolute;
+	font-size: 32pt;
+	font-weight: bold;
+	color: white;
+	left: 806px;
+	top: -4px;
+	width: 60px;
+	text-align: center;
+
+}
+
+.p2score {
+	position: absolute;
+	font-size: 32pt;
+	font-weight: bold;
+	color: white;
+	right: 810px;
+	top: -4px;
+	width: 60px;
+	text-align: center;
+
+}
+
+.title {
+	position: absolute;
+	font-size: 18pt;
+	color: white;
+	left: 880px;
+	top: -2px;
+	width: 155px;
+	height: 50px;
+	text-align: center;
+	line-height: 18px;
+	display: flex;
+	align-items: center;
+
+}
+
+#title {
+	text-align: center;
+	width: 155px;
+}
+
+</style>
+</head>
+<body>
+<div id="overlay">
+	<div id="p1name" class="p1name"></div>
+	<div id="p2name" class="p2name"></div>
+
+	<div id="p1score" class="p1score"></div>
+	<div id="p2score" class="p2score"></div>
+
+	<div class="title"><span id="title"><span></div>
+</div>
+</body>
+
+<script>
+const ws = new WebSocket("wss://kayin.moe:8083");
+let sbid = getUrlParam('id','default');
+if (sbid == ""){sbin = "default";}
+
+ws.addEventListener("open", () => {
+    console.log("We are connected!");
+	ws.send(sbid)
+});
+
+ws.addEventListener("message", ({ data }) => {
+    console.log(data);
+    refreshScore(data);
+});
+
+function getUrlVars() {
+    var vars = {};
+    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+        vars[key] = value;
+    });
+    return vars;
+}
+
+function getUrlParam(parameter, defaultvalue){
+    var urlparameter = defaultvalue;
+    if(window.location.href.indexOf(parameter) > -1){
+        urlparameter = getUrlVars()[parameter];
+        }
+    return urlparameter;
+}
+
+function refreshScore(data) {
+    const score = JSON.parse(data);
+
+	document.getElementById("p1name").innerHTML = score.main.p1name;
+    document.getElementById("p2name").innerHTML = score.main.p2name;
+
+    document.getElementById("p1score").innerHTML = score.main.p1score;
+    document.getElementById("p2score").innerHTML = score.main.p2score;
+
+    document.getElementById("title").innerHTML = score.main.title;
+
+    console.log(data);
+}
+</script>
