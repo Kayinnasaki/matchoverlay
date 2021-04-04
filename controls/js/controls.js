@@ -12,11 +12,11 @@ if (nossl == "1"){
 
 let sblocation = window.location.href.replace("controls/", "");
 
-const p1name = document.getElementById('p1name');
-const p2name = document.getElementById('p2name');
-const p1score = document.getElementById('p1score');
-const p2score = document.getElementById('p2score');
-const sbtitle = document.getElementById('title');
+const wbP1Name = document.getElementById('p1name');
+const wbP2Name = document.getElementById('p2name');
+const wbP1Score = document.getElementById('p1score');
+const wbP2Score = document.getElementById('p2score');
+const wbTitle = document.getElementById('title');
 
 let ulist = [];
 let colorfader = 0; // Fades color when User Names flash
@@ -82,11 +82,11 @@ function updateScore() {
     };
 
     const score_data = {
-        'p1name': p1name.value,
-        'p2name': p2name.value,
-        'p1score': p1score.value,
-        'p2score': p2score.value,
-        'title': sbtitle.value
+        'p1name': wbP1Name.value,
+        'p2name': wbP2Name.value,
+        'p1score': wbP1Score.value,
+        'p2score': wbP2Score.value,
+        'title': wbTitle.value
     };
 
     const payload = {
@@ -138,7 +138,7 @@ function refreshScore(data) {
     document.getElementById("p1scorebig").innerHTML = score.p1score;
     document.getElementById("p2scorebig").innerHTML = score.p2score;
 
-    sbtitle.value = score.title;
+    wbTitle.value = score.title;
     sblinkupdate();
     if (FullUpdate == 1){ 
         refreshInputs(score);
@@ -161,13 +161,13 @@ function refreshInputs(data) {
     sblinkupdate();
     const score = data;
 
-    p1name.value = score.p1name;
-    p2name.value = score.p2name;
+    wbP1Name.value = score.p1name;
+    wbP2Name.value = score.p2name;
 
-    p1score.value = score.p1score;
-    p2score.value = score.p2score;
+    wbP1Score.value = score.p1score;
+    wbP2Score.value = score.p2score;
 
-    sbtitle.value = score.title;
+    wbTitle.value = score.title;
 }
 
 // When doing a full update, info is pulled from the 'scoreboard' up top and not the
@@ -177,11 +177,11 @@ function syncInputs() {
         sendName(); 
     }
 
-    p1name.value = document.getElementById("p1namebig").innerHTML;
-    p2name.value = document.getElementById("p2namebig").innerHTML;
+    wbP1Name.value = document.getElementById("p1namebig").innerHTML;
+    wbP2Name.value = document.getElementById("p2namebig").innerHTML;
 
-    p1score.value = document.getElementById("p1scorebig").innerHTML;
-    p2score.value = document.getElementById("p2scorebig").innerHTML;
+    wbP1Score.value = document.getElementById("p1scorebig").innerHTML;
+    wbP2Score.value = document.getElementById("p2scorebig").innerHTML;
     document.getElementById("refresh").classList.remove("red");
 }
 
@@ -220,13 +220,13 @@ function lastFadeFunction() {
 
 // Swaps sides for Scores and Names
 function swap(){
-    var tmp = p1score.value;
-    p1score.value = p2score.value;
-    p2score.value = tmp;
+    var tmp = wbP1Score.value;
+    wbP1Score.value = wbP2Score.value;
+    wbP2Score.value = tmp;
 
-    var tmp = p1name.value;
-    p1name.value = p2name.value;
-    p2name.value = tmp;
+    var tmp = wbP1Name.value;
+    wbP1Name.value = wbP2Name.value;
+    wbP2Name.value = tmp;
     FullUpdate = 1;
     updateScore()
 };
@@ -239,11 +239,11 @@ const meta_data = {
 };
 
 const score_data = {
-    'p1name': p1name.value,
-    'p2name': p2name.value,
-    'p1score': p1score.value,
-    'p2score': p2score.value,
-    'title': sbtitle.value
+    'p1name': wbP1Name.value,
+    'p2name': wbP2Name.value,
+    'p1score': wbP1Score.value,
+    'p2score': wbP2Score.value,
+    'title': wbTitle.value
 };
 
 const payload = {
@@ -254,10 +254,10 @@ const payload = {
 
 function clearall(){
     console.log("Clearing");
-    p1name.value = '';
-    p2name.value = '';
-    p1score.value = '0';
-    p2score.value = '0';
+    wbP1Name.value = '';
+    wbP2Name.value = '';
+    wbP1Score.value = '0';
+    wbP2Score.value = '0';
 }
 
 function sblinkupdate(){
