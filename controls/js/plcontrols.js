@@ -134,7 +134,7 @@ function plistbuild(plist){
 
     plwork.value = plToText(plist);
     plist.forEach(element =>{
-        var option = document.createElement("option");
+        let option = document.createElement("option");
         option.value = element;
         console.log("adding " + element);
         document.getElementById("players").appendChild(option);

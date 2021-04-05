@@ -1,13 +1,14 @@
 // Checks for URL param to skip SSL. Should only be used for local testing
+let ws = [];
 const urlParams = new URLSearchParams(window.location.search);
 const nossl = urlParams.get('nossl');
 console.log("nossl: " + nossl);
 if (nossl == "1"){
     console.log("Attempting without SSL")
-	var ws = new WebSocket("ws://" + window.location.hostname + ":8082");
+	ws = new WebSocket("ws://" + window.location.hostname + ":8082");
 } else {
     console.log("Attempting with SSL")
-	var ws = new WebSocket("wss://" + window.location.hostname + ":8082");
+	ws = new WebSocket("wss://" + window.location.hostname + ":8082");
 }
 
 let sblocation = window.location.href.replace("controls/", "");
@@ -189,7 +190,7 @@ function syncInputs() {
 function updateUserList(uList, uLast) {
     document.getElementById("userlist").innerHTML = ''; // Destroy previous Userlist
     uList.forEach(element => {
-        var div = document.createElement("div");
+        let div = document.createElement("div");
         div.id = element;
         div.classList = "users";
         div.innerHTML = element;
@@ -220,11 +221,11 @@ function lastFadeFunction() {
 
 // Swaps sides for Scores and Names
 function swap(){
-    var tmp = wbP1Score.value;
+    let tmp = wbP1Score.value;
     wbP1Score.value = wbP2Score.value;
     wbP2Score.value = tmp;
 
-    var tmp = wbP1Name.value;
+    tmp = wbP1Name.value;
     wbP1Name.value = wbP2Name.value;
     wbP2Name.value = tmp;
     FullUpdate = 1;

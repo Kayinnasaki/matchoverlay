@@ -10,15 +10,15 @@ function seturlparam(){
 }
 
 function getUrlVars() {
-    var vars = {};
-    var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+    let vars = {};
+    let parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
         vars[key] = value;
     });
     return vars;
 }
 
 function getUrlParam(parameter, defaultvalue){
-    var urlparameter = defaultvalue;
+    let urlparameter = defaultvalue;
     if(window.location.href.indexOf(parameter) > -1){
         urlparameter = getUrlVars()[parameter];
         }
@@ -47,13 +47,13 @@ function openwindow(url){
     NewWindow=window.open(url,'newWin','width=600,height=301,left=20,top=20,toolbar=No,location=No,scrollbars=no,status=No,resizable=no,fullscreen=No');  NewWindow.focus(); void(0);  
 }
 
-var coll = document.getElementsByClassName("collapsible");
-var i;
+let coll = document.getElementsByClassName("collapsible");
+let i;
 
 for (i = 0; i < coll.length; i++) {
     coll[i].addEventListener("click", function() {
       this.classList.toggle("active");
-      var content = this.nextElementSibling;
+      let content = this.nextElementSibling;
       if (content.style.maxHeight){
         content.style.maxHeight = null;
       } else {

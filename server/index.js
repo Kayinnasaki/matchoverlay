@@ -9,35 +9,40 @@ const fs = require('fs');
 // Half of the stuff for getting SSL to work is Cargo Cult Code
 const config = require('./config');
 
+let wss = [];
+let wss2 = [];
+
+const https = require('https');
+
 if (config.privateKey !== ""){
     console.log("Has Certs: Starting with WSS")
-    let privateKey = fs.readFileSync(config.privateKey, 'utf8');
-    let certificate = fs.readFileSync(config.certificate, 'utf8');
-    var credentials = { key: privateKey, cert: certificate };
-    var https = require('https');
-
+    const privateKey = fs.readFileSync(config.privateKey, 'utf8');
+    const certificate = fs.readFileSync(config.certificate, 'utf8');
+    const credentials = { key: privateKey, cert: certificate };
+    
     // For Score Boards
-    var httpsServer = https.createServer(credentials);
+    let httpsServer = https.createServer(credentials);
     httpsServer.listen(8083);
 
-    var WebSocketServer = require('ws').Server;
-    var wss2 = new WebSocketServer({
+    let WebSocketServer = require('ws').Server;
+    wss2 = new WebSocketServer({
         server: httpsServer
     });
 
     // For Control Boards
-    var httpsServer2 = https.createServer(credentials);
+    let httpsServer2 = https.createServer(credentials);
     httpsServer2.listen(8082);
 
-    var wss = new WebSocketServer({
+    wss = new WebSocketServer({
         server: httpsServer2
     });
 } else {
     console.log("No Certs: Starting with WS")
 
-    var wss  = new WebSocket.Server({ port: 8082}); // For Control Boards
-    var wss2 = new WebSocket.Server({ port: 8083}); // For Score Displays
+    wss  = new WebSocket.Server({ port: 8082}); // For Control Boards
+    wss2 = new WebSocket.Server({ port: 8083}); // For Score Displays
 }
+
 
 // Default Info
 let scoreboard = {};
@@ -110,51 +115,6 @@ wss.on("connection", ws => {
             // "ulist" type broadcasts only send the userlist.
             wss.broadcast(sbUpdate("ulist",sbid),sbid);
             wss.broadcast(sbUpdate("ulist",sbidold),sbidold); 
-        }
-
-        //Challonge Request
-        if (dataj.meta.type == "challonge"){
-            const tournid = dataj.meta.tid;
-            let names = [];
-            console.log("Package Type: Challonge, TID: " + tournid);
-            //commid + "-" +
-            const url = "https://api.challonge.com/v1/tournaments/" + tournid + "/participants.json?api_key=" + apikey;
-            console.log(url);
-            https.get(url, (resp) => {
-                let data = '';
-              
-                // A chunk of data has been received.
-                
-                resp.on('data', (chunk) => {
-                  data += chunk;
-                });
-              
-                // The whole response has been received. Print out the result.
-                resp.on('end', () => {
-                    try { 
-                        data = JSON.parse(data);
-                        names = data.map(r => r.participant.name);
-                    }
-                    catch(err) {
-                        console.log(err)
-                        console.log("Challonge Sent Broken Data.");
-                        return;
-                    }
-
-                    names = names.sort();
-                    console.log("sending: " + names);
-                    ws.send(plUpdate(names));
-                });
-              
-            }).on("error", (err) => {
-                console.log("Error: " + err.message);
-            });
-
-        }
-
-        //Challonge Request
-        if (dataj.meta.type == "pl"){
-        
         }
 
         //Challonge Request
