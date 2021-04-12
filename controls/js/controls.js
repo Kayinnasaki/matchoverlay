@@ -1,116 +1,174 @@
-// Checks for URL param to skip SSL. Should only be used for local testing
+window.useLocalStorage;
+
 let ws = [];
 const urlParams = new URLSearchParams(window.location.search);
 const nossl = urlParams.get('nossl');
 console.log("nossl: " + nossl);
-if (nossl == "1"){
+if (nossl == "1") {
     console.log("Attempting without SSL")
-	ws = new WebSocket("ws://" + window.location.hostname + ":8082");
+    ws = new WebSocket("ws://" + config.ServerUrl + ":8082");
 } else {
     console.log("Attempting with SSL")
-	ws = new WebSocket("wss://" + window.location.hostname + ":8082");
+    ws = new WebSocket("wss://" + config.ServerUrl + ":8082");
 }
 
-let sblocation = window.location.href.replace("controls/", "");
+const sblocation = window.location.href.replace("controls/", "");
 
-const wbP1Name = document.getElementById('p1name');
-const wbP2Name = document.getElementById('p2name');
-const wbP1Score = document.getElementById('p1score');
-const wbP2Score = document.getElementById('p2score');
-const wbTitle = document.getElementById('title');
-
-let ulist = [];
-let colorfader = 0; // Fades color when User Names flash
-let FullUpdate = 1; // 0: Update only the score display. 1: Update score display AND controls
-
-document.getElementById("username").value = slugify(localStorage.getItem('name') || getUniqueID()); //Generate a Unique ID or pull from Local Stoage
-let uname = document.getElementById("username").value
-let sbid = "default"; // Declare Early due to Type Issues
-
-console.log("id: " + getUrlParam('id'));
-// URL IDs overwrite Local Storage when setting the SB ID
-if (getUrlParam('id') == undefined){
-    console.log("generating unique ID")
-    sbid = slugify(localStorage.getItem('sbid') || getUniqueID());
-} else {
-    console.log("Default")
-    sbid = getUrlParam('id','default');
+let accordion = {
+    props: [
+        'title'
+    ],
+    data() {
+        return {
+            active: true,
+        }
+    },
+    template: `
+            <div class="">
+                <div class="collapsible">
+                    <a href="#" class="colltitle" @click.prevent="active = !active">
+                        <strong>{{title}}</strong>
+                        <span class="down-Arrow" v-show="!active">&#9650;</span>
+                        <span class="up-Arrow" v-show="active">&#9660;</span>
+                    </a>
+                </div>
+                <div class="content" v-show="active"><slot /></div>            
+            </div>`
 }
 
-document.getElementById("sbid").value = sbid //Generate a Unique Scoreboard ID or pull from Local Stoage
+Vue.component('users', {
+    props: ['user', 'last'],
+    template: `<div class="users" :id="user.name" :class="{ 'last' : last == user.name}">{{user.name}}</div>`
+})
+
+Vue.component('playerlist', {
+    props: ['player'],
+    template: `<option :value="player.name"></option>`
+})
+
+let app = new Vue({
+    el: '#app',
+    data: {
+        scoreboard: {
+            p1Name: "",
+            p2Name: "",
+            p1Score: 0,
+            p2Score: 0,
+            title: "",
+        },
+
+        workboard: {
+            p1Name: "",
+            p2Name: "",
+            p1Score: 0,
+            p2Score: 0,
+            title: "",
+        },
+
+        playerlist: {
+            players: [],
+            work: localStorage.getItem('pl') || "",
+            chcid: localStorage.getItem('chcid') || "",
+            chtid: localStorage.getItem('chtid') || "",
+            smashgg: localStorage.getItem('smashurl') || "",
+            subox: true,
+        },
+
+        userlist: [],
+        userlast: "",
+
+        idleTimer: 0,
+        idleThreshhold: 10,
+
+        name: localStorage.getItem('name') || getUniqueID(),
+        sbid: urlParams.get('id') || localStorage.getItem('sbid') || "default",
+        urlbase: config.ScoreboardUrl,
+        sync: -1
+    },
+
+    components: {
+        accordion
+    },
+})
+
+let plDiff = plToArray(app.playerlist.work);
+
+loadSmashgg();
+loadChallonge();
+plWorkToPl();
 sblinkupdate(); // Updates URL and Link for the Scoreboard
 
-ws.addEventListener("open", () => {
+ws.onopen = () => {
     console.log("We are connected!");
     sendName();
-});
-
-ws.onerror = function(event) {
-	console.log("FAILURE");
-	if (nossl !== "1"){
-		window.location.search = window.location.search + "&nossl=1";
-        // Lets Try taht without SSL...
-	}
 }
 
-ws.addEventListener("message", ({ data }) => {
+ws.onerror = (e) => {
+    console.log("FAILURE");
+    console.log(e);
+    if (nossl !== "1") {
+        window.location.search = window.location.search + "&nossl=1";
+        // Lets Try taht without SSL...
+    }
+}
+
+ws.onmessage = ({ data }) => {
     console.log(data);
     const sbparse = JSON.parse(data);
     const sbupdate = sbparse.main;
 
     // Collect user inputs and throw tem at the server
 
-    if (sbparse.meta.type == "update" || sbparse.meta.type == "ulist"){
+    if (sbparse.meta.type == "update" || sbparse.meta.type == "ulist") {
         sbupdate.type = sbparse.meta.type; // Maybe I should have thought about my data structure better...
-        console.log(sbupdate);
-        refreshScore(sbupdate);
+        updateScoreboard(sbupdate);
         updateUserList(sbparse.meta.userlist, sbparse.meta.last)
         plCheck(sbparse.main.pl);
     };
 
-    if (sbparse.meta.type == "playerlist"){
+    if (sbparse.meta.type == "playerlist") {
         plistbuild(sbparse.meta.playerlist);
         plToWork(sbparse.meta.playerlist);
     };
-});
+}
 
 // Send Updated Score to the Server
-function updateScore() {
+function sendScore() {
     const meta_data = {
-        'name': document.getElementById("username").value,
+        'name': app.name,
         'type': "update",
-        'sbid': sbid
+        'sbid': app.sbid
     };
 
     const score_data = {
-        'p1name': wbP1Name.value,
-        'p2name': wbP2Name.value,
-        'p1score': wbP1Score.value,
-        'p2score': wbP2Score.value,
-        'title': wbTitle.value
+        'p1name': app.workboard.p1Name,
+        'p2name': app.workboard.p2Name,
+        'p1score': app.workboard.p1Score,
+        'p2score': app.workboard.p2Score,
+        'title': app.workboard.title
     };
 
     const payload = {
         'meta': meta_data,
         'main': score_data,
     };
-    document.getElementById("refresh").classList.remove("red");
-
-    userIdSync();
+    console.log("Sending:")
     const json_text = JSON.stringify(payload);
     ws.send(json_text);
 }
 
+// Send Name and Scoreboard ID to Server
 function sendName() {
-    userIdSync();
+    localStorage.setItem('name', slugify(app.name));
+    localStorage.setItem('sbid', slugify(app.sbid));
     sblinkupdate()
-    
-    console.log("Telling Server Name Is: " + uname);
+
+    console.log("Telling Server Name Is: " + app.name + " and my Scoreboard is: " + app.sbid);
     const payload = {
         'meta': {
-            'name': uname,
+            'name': app.name,
             'type': "rename",
-            'sbid': sbid
+            'sbid': app.sbid
         }
     }
 
@@ -118,162 +176,143 @@ function sendName() {
     ws.send(json_text);
 }
 
-function userIdSync() {
-    localStorage.setItem('name', slugify(document.getElementById("username").value));
-    localStorage.setItem('sbid', slugify(document.getElementById("sbid").value));
-    sbid =  localStorage.getItem("sbid");
-    uname =  localStorage.getItem("name");
+// Update local Scoreboard with data from the Server
+function updateScoreboard(data) {
 
-    document.getElementById("sbid").value = sbid;
-    document.getElementById("username").value = uname;
-}
+    app.scoreboard.p1Name = data.p1name;
+    app.scoreboard.p2Name = data.p2name;
+    app.scoreboard.p1Score = data.p1score;
+    app.scoreboard.p2Score = data.p2score;
+    app.scoreboard.title = data.title;
 
-// Update local scoreboard with data from the Server
-function refreshScore(data) {
-    console.log(data);
-    const score = data;
-
-    document.getElementById("p1namebig").innerHTML = score.p1name;
-    document.getElementById("p2namebig").innerHTML = score.p2name;
-
-    document.getElementById("p1scorebig").innerHTML = score.p1score;
-    document.getElementById("p2scorebig").innerHTML = score.p2score;
-
-    wbTitle.value = score.title;
     sblinkupdate();
-    if (FullUpdate == 1){ 
-        refreshInputs(score);
-        FullUpdate = 0;
-    } else {
-        console.log("Reddening Refresh")
-        document.getElementById("refresh").classList.add("red");
-    }
-    
-    // If the update is just a userlist, we don't need to redden anything
-    // (Yes I tried to work this up into the above statement and it never worked right)
-    if (score.type == "ulist"){
-        console.log("De-Reddening Refresh")
-        document.getElementById("refresh").classList.remove("red");
-    }  
+    syncCheck();
 }
 
 // Update Local Inputs with data from the Local Scoreboard
-function refreshInputs(data) {
-    sblinkupdate();
-    const score = data;
+function syncWorkboard() {
+    console.log("Syncing Workboard with Scoreboard")
 
-    wbP1Name.value = score.p1name;
-    wbP2Name.value = score.p2name;
-
-    wbP1Score.value = score.p1score;
-    wbP2Score.value = score.p2score;
-
-    wbTitle.value = score.title;
+    app.workboard.p1Name = app.scoreboard.p1Name;
+    app.workboard.p2Name = app.scoreboard.p2Name;
+    app.workboard.p1Score = app.scoreboard.p1Score;
+    app.workboard.p2Score = app.scoreboard.p2Score;
+    app.workboard.title = app.scoreboard.title;
+    app.sync = 1;
 }
 
-// When doing a full update, info is pulled from the 'scoreboard' up top and not the
-function syncInputs() {
-    if (sbid !== document.getElementById("sbid").value) {
-        console.log(sbid + " : " + document.getElementById("sbid").value);
-        sendName(); 
+function syncCheck() {
+    const a = JSON.stringify(app.workboard);
+    const b = JSON.stringify(app.scoreboard);
+
+
+    if (a == b) {
+        console.log('Boards are the Same')
+        app.sync = 1;
+    } else if (app.sync == -1 || app.idleTimer > app.idleThreshhold) {
+        console.log('Force Refresh')
+        syncWorkboard();
+    } else {
+        console.log('Boards Mismatch')
+        app.sync = 0;
     }
-
-    wbP1Name.value = document.getElementById("p1namebig").innerHTML;
-    wbP2Name.value = document.getElementById("p2namebig").innerHTML;
-
-    wbP1Score.value = document.getElementById("p1scorebig").innerHTML;
-    wbP2Score.value = document.getElementById("p2scorebig").innerHTML;
-    document.getElementById("refresh").classList.remove("red");
 }
 
-// Update Userlist with serverside information
-function updateUserList(uList, uLast) {
-    document.getElementById("userlist").innerHTML = ''; // Destroy previous Userlist
-    uList.forEach(element => {
-        let div = document.createElement("div");
-        div.id = element;
-        div.classList = "users";
-        div.innerHTML = element;
-
-        // Check if name already exists. If it does, just add a + to the end of the name
-        // to show how many concurrent connections there are by one username.
-        const idcheck = document.getElementById(element);
-        if(idcheck){document.getElementById(element).innerHTML = document.getElementById(element).innerHTML + "+"} 
-        else {document.getElementById("userlist").appendChild(div);}
+// Turns a simple array into an iteratable object in Vue
+function keyedList(data) {
+    let i = 0;
+    let list = [];
+    data.forEach(element => {
+        object = { id: i, name: element };
+        list.push(object);
+        i++;
     });
 
-    // Use uLast to determine which user last a sent an update so their name can flash
-    if (uLast !== "none") {
-        document.getElementById(uLast).id = "last";
-        colorfader = 7;
-        lastFadeFunction();
-    }
-};
+    return list;
+}
 
-// Make the Red Flash fade
-function lastFadeFunction() {
-    if (colorfader<187) {
-        colorfader += 15;
-        setTimeout(function(){lastFadeFunction()},100);
-   }
-   document.getElementById('last').style.color = "rgba(187," + colorfader + "," + colorfader + ",1)";
+function updateUserList(uList, uLast) {
+    uList = [...new Set(uList)];
+    app.userlast = "";
+    app.userlist = keyedList(uList);
+
+    // Makes the Input Flash work again
+    setTimeout(() => { app.userlast = uLast; }, 50);
 };
 
 // Swaps sides for Scores and Names
-function swap(){
-    let tmp = wbP1Score.value;
-    wbP1Score.value = wbP2Score.value;
-    wbP2Score.value = tmp;
+function swap() {
+    document.getElementById('serverupdate').checked = app.playerlist.subox;
 
-    tmp = wbP1Name.value;
-    wbP1Name.value = wbP2Name.value;
-    wbP2Name.value = tmp;
-    FullUpdate = 1;
-    updateScore()
+    console.log("Swapping Sides...");
+    [app.workboard.p1Name, app.workboard.p2Name, app.workboard.p1Score, app.workboard.p2Score] = [app.workboard.p2Name, app.workboard.p1Name, app.workboard.p2Score, app.workboard.p1Score];
+    sendScore();
 };
 
-
-const meta_data = {
-    'name': document.getElementById("username").value,
-    'type': "update",
-    'sbid': sbid
-};
-
-const score_data = {
-    'p1name': wbP1Name.value,
-    'p2name': wbP2Name.value,
-    'p1score': wbP1Score.value,
-    'p2score': wbP2Score.value,
-    'title': wbTitle.value
-};
-
-const payload = {
-    'meta': meta_data,
-    'main': score_data,
-};
-
-
-function clearall(){
+function clearall() {
     console.log("Clearing");
-    wbP1Name.value = '';
-    wbP2Name.value = '';
-    wbP1Score.value = '0';
-    wbP2Score.value = '0';
+    app.workboard.p1Name = '';
+    app.workboard.p2Name = '';
+    app.workboard.p1Score = '0';
+    app.workboard.p2Score = '0';
 }
 
-function sblinkupdate(){
-    document.getElementById('sblink').innerHTML = sblocation;
-    document.getElementById('sblink').href = sblocation;
-    seturlparam();
+function wbIncrement(num, id) {
+    app.workboard[id] = String(parseInt(app.workboard[id]) + num);
+    sendScore();
 }
 
-document.getElementById("update").addEventListener("click", () => {
-    FullUpdate = 1;
-    updateScore()
-});
+function getUniqueID() {
+    function s4() {
+        return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+    }
+    return s4() + s4();
+}
 
-function refreshplist() {
-    plist.forEach(element => {
-        console.log("aaaa");
+function sblinkupdate() {
+    window.history.pushState('', '', window.location.origin + window.location.pathname + "?id=" + app.sbid);
+}
+
+function slugify(text) {
+    return text.toString().toLowerCase()
+        .replace(/\s+/g, '-')           // Replace spaces with -
+        .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+        .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+        .replace(/^-+/, '')             // Trim - from start of text
+        .replace(/-+$/, '');            // Trim - from end of text
+}
+
+// For the Popout Button
+//function openwindow(url) {
+//    NewWindow = window.open(url, 'newWin', 'width=600,height=301,left=20,top=20,toolbar=No,location=No,scrollbars=no,status=No,resizable=no,fullscreen=No'); NewWindow.focus(); void (0);
+//}
+
+//let idleTimer = 0;
+//let idleThreshhold = 10;
+
+function activityWatcher() {
+    setInterval(function () {
+        app.idleTimer++;
+        //console.log(idleTimer + ' seconds since the user was last active');
+        if (app.idleTimer > app.idleThreshhold && app.sync == 0) {
+            console.log('Auto Refreshing');
+            syncWorkboard();
+        }
+    }, 1000);
+
+    // Reset Timer with Actvity
+    function activity() {
+        app.idleTimer = 0;
+    }
+
+    let activityEvents = [
+        'mousedown', 'mousemove', 'keydown',
+        'scroll', 'touchstart'
+    ];
+
+    activityEvents.forEach(function (eventName) {
+        document.addEventListener(eventName, activity, true);
     });
 }
+
+activityWatcher();

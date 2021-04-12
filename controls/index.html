@@ -3,164 +3,175 @@
 <head>
     <link rel="stylesheet" href="style.css">
     <meta charset="utf-8" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
 </head>
 
 <body>
-    <div id="topitems">
-        <div id="controlbox">
-            <div class="topbtn">
-                <div class="p1 namebox">
-                    <div class="squeeze sr"><span id="p1namebig" class="serverside"></span><span class="serverside"> :
-                        </span><span id="p1scorebig" class="serverside"></span></div>
-                    <span class="arrow"><input class="namelist topinput" list="players" id="p1name" name="p1name"
-                            placeholder="Player 1" temp=""
-                            onmouseover="this.temp=this.value; this.placeholder=this.temp; this.value='';"
-                            onmouseout="this.value=this.temp;"></span>
+    <div id="app">
+        <div class="topFlex">
+            <div>
+                <div id="scoreboard">
+                    <div class="sbHeaderPlayer sbR">
+                        {{scoreboard.p1Name}}
+                        <div class="sbBox sbR">{{scoreboard.p1Score}}</div>
+                    </div>
+                    <div class="sbTitle">{{scoreboard.title}}</div>
+                    <div class="sbHeaderPlayer sbL">
+                        <div class="sbBox sbL">{{scoreboard.p2Score}}</div>
+                        {{scoreboard.p2Name}}
+                    </div>
                 </div>
-                <div class="p2 namebox">
-                    <div class="squeeze sl"><span id="p2scorebig" class="serverside"></span><span class="serverside"> :
-                        </span><span id="p2namebig" class="serverside"></span></div>
-                    <span class="arrow"><input class="namelist topinput" list="players" id="p2name" name="p2name"
-                            placeholder="Player 2" temp=""
-                            onmouseover="this.temp=this.value; this.placeholder=this.temp; this.value='';"
-                            onmouseout="this.value=this.temp;"></span>
+
+                <datalist id="players">
+                    <playerlist v-for="item in playerlist.players" v-bind:player="item" v-bind:key="item.id">
+                    </playerlist>
+                </datalist>
+                <div class="wbBox">
+                    <div class="wbFlex">
+                        <div class="wbplayer"><span class="arrow"><input class="wbplayerinput" list="players"
+                                    name="p1name" placeholder="Player 1" temp=""
+                                    onmouseover="this.temp=this.value; this.placeholder=this.temp; this.value='';"
+                                    onmouseout="this.value=this.temp;" v-model="workboard.p1Name"></span></div>
+                        <button class="swap drkbutton" onClick="swap()"><span
+                                class="material-icons">swap_horiz</span></button>
+                        <div class="wbplayer"><span class="arrow"><input class="wbplayerinput" list="players"
+                                    name="p2name" placeholder="Player 2" temp=""
+                                    onmouseover="this.temp=this.value; this.placeholder=this.temp; this.value='';"
+                                    onmouseout="this.value=this.temp;" v-model="workboard.p2Name"></span></div>
+                    </div>
+
+                    <div class="wbFlex">
+                        <div class="scorebox">
+                            <div class="scoretab top" onClick="wbIncrement(1, 'p1Score')">+</div>
+                            <input class="bignumber topinput" type="number" id="p1score" name="p1score" min="-99"
+                                max="99" v-model="workboard.p1Score">
+                            <div class="scoretab bottom" onClick="wbIncrement(-1, 'p1Score')">-</div>
+                        </div>
+
+                        <div>
+                            <button class="drkbutton midbutton" onClick="clearall()">Clear</button><br>
+                            <button class="drkbutton midbutton" onClick="sendScore()">Submit</button><br>
+                            <button class="drkbutton midbutton" id="refresh" :class="{ 'red' : sync == 0}"
+                                onClick="syncWorkboard();">Refresh</button><br>
+                            <input class="titleInput wbInput" type="text" v-model="workboard.title">
+                        </div>
+
+                        <div class="scorebox">
+                            <div class="scoretab top" onClick="wbIncrement(1, 'p2Score')">+</div>
+                            <input class="bignumber topinput" type="number" id="p2score" name="p2score" min="-99"
+                                max="99" v-model="workboard.p2Score">
+                            <div class="scoretab bottom" onClick="wbIncrement(-1, 'p2Score')">-</div>
+                        </div>
+                    </div>
+
+                    <div class="wbFooter wbFlex">
+                        <div class="footer">
+
+                            <div>Name: <input class="footerInput" type="text" class="wbInput titleInput"
+                                    v-model="name"><button class="footerInputBtn" onClick="sendName()"><span
+                                        class="material-icons smaller-icons">
+                                        autorenew
+                                    </span></button>
+                                Scoreboard ID: <input type="text" class="footerInput" name="sbid" v-model="sbid"><button
+                                    class="footerInputBtn" onClick="sendName()"><span
+                                        class="material-icons smaller-icons">
+                                        autorenew
+                                    </span></button></div>
+                            <div class="wbFlex">
+                                <div class="sbLinkbox">
+                                    <a class="sblink" :href="`${urlbase}?id=${sbid}`" name="sblink" target="_blank"
+                                        rel="noopener noreferrer">{{urlbase}}?id={{sbid}}</a>
+                                </div>
+                                <div class="idler" id="refresh" :class="{ 'invisible' : idleTimer <= idleThreshhold}">User Idle!<br>Auto Updating
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
             </div>
-
-            <div class="centerbtn">
-                <div class="scorebox">
-                    <div class="scoretab top" onClick="sbincrement(1, 'p1score')">+</div>
-                    <input class="bignumber topinput" type="number" id="p1score" name="p1score" min="-99" max="99">
-                    <div class="scoretab bottom" onClick="sbincrement(-1, 'p1score')">-</div>
-                </div>
-
-                <div class="fl">
-                    <input class="topinput bigbutton" type="button" name="clear" value="Clear" onClick="clearall()"><br>
-                    <input class="topinput bigbutton" type="button" name="switch" value="Swap" onClick="swap()"><br>
-                    <input class="topinput bigbutton" type="button" name="update" value="Submit Info" id="update"><br>
-                    <input class="topinput bigbutton" type="button" name="refresh" value="Refresh" id="refresh"
-                        onClick="syncInputs()">
-                </div>
-
-                <div class="scorebox">
-                    <div class="scoretab top" onClick="sbincrement(1, 'p2score')">+</div>
-                    <input class="bignumber topinput" type="number" id="p2score" name="p2score" min="-99" max="99">
-                    <div class="scoretab bottom" onClick="sbincrement(-1, 'p2score')">-</div>
-                </div>
+            <div id="userlist">
+                <users v-for="item in userlist" v-bind:user="item" v-bind:key="item.id" v-bind:last="userlast"></users>
+                </users>
             </div>
-
-
-            <div class="bottom">
-                <div class="inlinediv">
-                    User Name<br>
-                    <input class="topinput" type="text" class="binput" id="username" name="username" value="">
-                </div>
-                <div class="inlinediv">
-                    Match Title<br>
-                    <input class="topinput" type="text" class="binput" id="title" name="title">
-                </div>
+        </div>
+        <accordion title="Tournament ID and Player Information">
+            <div class="playerconfig">
+                <textarea name="playerlist" spellcheck="false" id="playerlist"
+                    placeholder='Player 1&#10;Player 2&#10;Plyaer 3&#10;...' v-model="playerlist.work"></textarea>
             </div>
+            <div>
+                <br>
+                <button type="button" class="plbutton" onclick="plWorkToPl();">Update<br>Player List</button>
+                <button type="button" class="plbutton" onclick="plPush();">Push to<br>Server</button><br><br>
+                <button type="button" class="plbutton" onclick="plLocalLoad();">Load from Local Storage</button>
+                <button type="button" class="plbutton" onclick="plLocalSave();">Save to Local Storage</button>
+                <br><br>
+                <hr>
 
-        </div>
+                <strong>Smash GG</strong><br>
+                <div class="tidrightbox">Tournament URL:</div>&nbsp;<input v-model="playerlist.smashgg" type="txt"
+                    class="tidinputs" id="sggurl"><br>
 
-        <div id="userlist"></div>
+                <button type="button" onclick="plistSmashgg();">Pull Down List</button>
+                <button type="button" onclick="saveSmashgg();">Save</button>
+                <button type="button" onclick="loadSmashgg();">Load</button>
+
+                <br><br>
+                <strong>Challonge</strong><br>
+
+                <div class="tidrightbox">Community ID:</div>&nbsp;<input v-model="playerlist.chcid" type="txt"
+                    class="tidinputs" id="chcid"><br>
+
+                <div class="tidrightbox">Tournament ID:</div>&nbsp;<input v-model="playerlist.chtid" type="txt"
+                    class="tidinputs" id="chtid"><br>
+
+                <button type="button" onclick="plistChallonge();">Pull Down List</button>
+                <button type="button" onclick="saveChallonge();">Save</button>
+                <button type="button" onclick="loadChallonge();">Load</button>
+                <br><br>
+                <hr>
+                <p>Press <strong>Update Player List</strong> to move your player list to the drop down menues above.
+                    <strong>Push to Server</strong> pushes the playerlist to anyone else you might have operating
+                    the scoreboard.
+                </p>
+                <p><strong>Load</strong> and <strong>Save</strong> will save data to your browser's storage
+                    for<br>retrieval later. Use it to remember settings or playerlists for later.</p>
+                <p><strong>Smash GG</strong> url's should be formated like:</p>
+                <p style="font-size:9pt; line-height: 0px;">
+                    https://smash.gg/tournament/iron-grid-online-1/event/guilty-gear-r-singles/overview</p>
+            </div>
+        </accordion>
+
+        <accordion title="Help">
+            <div class="accordtext">
+                <h3>IDs and sharing sessions</h3>
+                <p>Your Scoreboard ID indicates which instance of the scoreboard you are editing. Your URL will
+                    update to your ID to allow you to quickly share this panel with anyone who you need to help
+                    operate the scoreboard with. The Scoreboard Panel also includes a link to the actual scoreboard,
+                    which you can plug into a browser source in OBS.</p>
+
+                <h3>Controls and Updates</h3>
+                <p>The topmost bar on the scoreboard is the <em>Live Score</em>. It is what is showing on the
+                    scoreboard right now. The area below that is your work area. Score updates will automatically be
+                    sent to the Live Score but names need to be updated by either submitting or pressing refresh.
+                    This is to prevent people stepping on each other's inputs by forcing updates mid edit</p>
+
+                <p>If Refresh is red that means there are updates you aren't synced with. You may wish to refresh to
+                    resync, or continue your edits and send them instead. User names in the user list will flash
+                    when they submit changes, letting you know who is paying attention and how active they are.</p>
+            </div>
+        </accordion>
+
+
     </div>
-
-    <br>
-    <div id="bottomitems">
-        <div id="sbidbar">Scoreboard ID: <input type="text" class="sbutton topinput" id="sbid" name="sbid"
-                value=""><input class="sbutton" type="button" name="Generate" value="Generate"
-                onClick="document.getElementById('sbid').value = getUniqueID()"><input class="sbutton" type="button"
-                name="Set ID" value="Set ID" onClick="sendName()"><br><br>
-            <a id="sblink" name="sblink" target="_blank" rel="noopener noreferrer"></a>
-        </div>
-
-        <a id="popout" href="frame.html" onclick="openwindow(this.href); return false;">Pop Out</a>
-    </div>
-    <br>
-
-    <button class="collapsible">Tournament ID and Player Information</button>
-    <div class="content">
-        <div class="playerconfig">
-            <textarea name="playerlist" spellcheck="false" id="playerlist"
-                placeholder='Player 1&#10;Player 2&#10;Plyaer 3&#10;...'></textarea>
-        </div>
-
-        <div>
-            <br>
-            <input type="checkbox" id="serverupdate" name="serverupdate" onclick="suBoxChange()" checked>
-            <label for="serverupdate">Recieve Player List Updates from Server</label>
-            <hr>
-            <button type="button" class="midbutton" onclick="plWorkToPl();">Update<br>Player List</button> <button
-                type="button" class="midbutton" onclick="plPush();">Push to<br>Server</button><br><br>
-            <button type="button" class="midbutton" onclick="plLocalLoad();">Load from Local Storage</button> <button
-                type="button" class="midbutton" onclick="plLocalSave();">Save to Local Storage</button>
-            <hr>
-
-            <strong>Smash GG</strong><br>
-            <div class="tidrightbox">Tournament URL:</div>&nbsp;<input type="txt" class="tidinputs"
-                id="sggurl"><br><button type="button" onclick="plistSmashgg();">Pull Down List</button> <button
-                type="button" onclick="saveSmashgg();">Save</button> <button type="button"
-                onclick="loadSmashgg();">Load</button>
-
-            <br><br>
-            <strong>Challonge</strong><br>
-            <div class="tidrightbox">Community ID:</div>&nbsp;<input type="txt" class="tidinputs" id="chcid"><br>
-            <div class="tidrightbox">Tournament ID:</div>&nbsp;<input type="txt" class="tidinputs"
-                id="chtid"><br><button type="button" onclick="plistChallonge();">Pull Down List</button> <button
-                type="button" onclick="saveChallonge();">Save</button> <button type="button"
-                onclick="loadChallonge();">Load</button>
-            <hr>
-            Press <strong>Update Player List</strong> to move your player list to the drop down menues above.
-            <strong>Push to Server</strong>
-            pushes the playerlist to anyone else you might have operating the scoreboard.
-            <br><br>
-            <strong>Load</strong> and <strong>Save</strong> will save data to your browser's storage for<br>retrieval
-            later. Use it to remember settings
-            or playerlists for later.
-            <br><br>
-            <strong>Smash GG</strong> url's should be formated like:<p style="font-size:9pt; line-height: 0px;">
-                https://smash.gg/tournament/iron-grid-online-1/event/guilty-gear-r-singles/overview</p>
-        </div>
-    </div>
-    <br>
-
-    <button class="collapsible">Help</button>
-    <div class="content">
-        <div class="extext">
-            <h3>IDs and sharing sessions</h3>
-            Your Scoreboard ID indicates which instance of the scoreboard you are editing. Your URL will update to your
-            ID to allow you to quickly share
-            this panel with anyone who you need to help operate the scoreboard with. The Scoreboard Panel also includes
-            a link to the actual scoreboard,
-            which you can plug into a browser source in OBS.
-
-            <h3>Controls and Updates</h3>
-            The topmost bar on the scoreboard is the <em>Live Score</em>. It is what is showing on the scoreboard right
-            now. The area below that is your
-            work area. Score updates will automatically be sent to the Live Score but names need to be updated by either
-            submitting or pressing refresh.
-            This is to prevent people stepping on each other's inputs by forcing updates mid edit<br><br>
-
-            If Refresh is red that means there are updates you aren't synced with. You may wish to refresh to resync, or
-            continue your edits and send them
-            instead. User names in the user list will flash when they submit changes, letting you know who is paying
-            attention and how active they are.
-        </div>
-    </div>
-
-    <datalist id="players">
-    </datalist>
-
 </body>
 
 </html>
 
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<script type="text/javascript" src="config.js"></script>
 <script type="text/javascript" src="js/plcontrols.js"></script>
-<script type="text/javascript" src="js/utils.js"></script>
 <script type="text/javascript" src="js/controls.js"></script>
-
-
-<script>
-
-</script>
