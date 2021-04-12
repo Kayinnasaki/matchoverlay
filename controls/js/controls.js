@@ -1,26 +1,17 @@
-window.useLocalStorage;
-
-let ws = [];
+// Defining Websocket Connection
 const urlParams = new URLSearchParams(window.location.search);
-const nossl = urlParams.get('nossl');
-console.log("nossl: " + nossl);
-if (nossl == "1") {
-    console.log("Attempting without SSL")
-    ws = new WebSocket("ws://" + config.ServerUrl + ":8082");
-} else {
-    console.log("Attempting with SSL")
-    ws = new WebSocket("wss://" + config.ServerUrl + ":8082");
-}
+const server = config.ServerSSL + "://" + config.ServerUrl + ":" + config.ControlPort;
+const ws = new WebSocket(server);
+console.log("Connecting to:" + server)
 
-const sblocation = window.location.href.replace("controls/", "");
+// Defining Components
 
+// Used for foldout menus
 let accordion = {
-    props: [
-        'title'
-    ],
+    props: ['title'],
     data() {
         return {
-            active: true,
+            active: false,
         }
     },
     template: `
@@ -36,65 +27,73 @@ let accordion = {
             </div>`
 }
 
-Vue.component('users', {
+let userlist = {
     props: ['user', 'last'],
     template: `<div class="users" :id="user.name" :class="{ 'last' : last == user.name}">{{user.name}}</div>`
-})
+}
 
-Vue.component('playerlist', {
+let playerlist = {
     props: ['player'],
     template: `<option :value="player.name"></option>`
-})
+}
 
 let app = new Vue({
     el: '#app',
     data: {
+        // Data displayed on the on-stream scoreboard
         scoreboard: {
-            p1Name: "",
-            p2Name: "",
-            p1Score: 0,
-            p2Score: 0,
+            p1name: "",
+            p2name: "",
+            p1score: 0,
+            p2score: 0,
             title: "",
         },
 
+        // Data that has not yet been sent to the scoreboard.
         workboard: {
-            p1Name: "",
-            p2Name: "",
-            p1Score: 0,
-            p2Score: 0,
+            p1name: "",
+            p2name: "",
+            p1score: 0,
+            p2score: 0,
             title: "",
         },
 
+        // Variables related to the playerlist pulldown meny.
         playerlist: {
             players: [],
             work: localStorage.getItem('pl') || "",
-            chcid: localStorage.getItem('chcid') || "",
-            chtid: localStorage.getItem('chtid') || "",
+            chcid: localStorage.getItem('chcid') || "", // Challonge Community ID
+            chtid: localStorage.getItem('chtid') || "", // Challonge Tournament ID
             smashgg: localStorage.getItem('smashurl') || "",
-            subox: true,
+            subox: true, // Server Update Override checkbox. Functionality disabled, currently.
         },
 
-        userlist: [],
-        userlast: "",
+        userlist: [], // List of Scoreboard Controls Users on the current SBID
+        userlast: "", // Last User to send an update. Used to flash their name red.
 
-        idleTimer: 0,
-        idleThreshhold: 10,
+        idletimer: 0, // Simple idle timer.
+        idlethreshhold: 10, // After 10 seconds of inactivity, workboard auto syncs with scoreboard.
 
-        name: localStorage.getItem('name') || getUniqueID(),
-        sbid: urlParams.get('id') || localStorage.getItem('sbid') || "default",
-        urlbase: config.ScoreboardUrl,
-        sync: -1
+        name: localStorage.getItem('name') || getUniqueID(), // Generates a random name if one isn't saved.
+        sbid: urlParams.get('id') || localStorage.getItem('sbid') || "default", // Scoreboard ID. Same as above, but can be overridden by the URL
+        urlbase: config.ScoreboardUrl, // For the scoreboard link at the bottom of the board.
+        sync: -1 // Sync state of scoreboard. -1: Force Update. 0: Unsynced. 1: Synced
     },
 
     components: {
-        accordion
+        accordion,
+        userlist,
+        playerlist
     },
 })
 
+// Used to check the sync state of the workboard
 let plDiff = plToArray(app.playerlist.work);
 
+// Loads info from local storage if available
 loadSmashgg();
 loadChallonge();
+
 plWorkToPl();
 sblinkupdate(); // Updates URL and Link for the Scoreboard
 
@@ -104,32 +103,27 @@ ws.onopen = () => {
 }
 
 ws.onerror = (e) => {
-    console.log("FAILURE");
     console.log(e);
-    if (nossl !== "1") {
-        window.location.search = window.location.search + "&nossl=1";
-        // Lets Try taht without SSL...
-    }
 }
 
 ws.onmessage = ({ data }) => {
     console.log(data);
-    const dataparse = JSON.parse(data);
-    const sbupdate = dataparse.main;
+    data = JSON.parse(data);
+    const scoreupdate = data.main;
 
     // Collect user inputs and throw tem at the server
 
-    if (dataparse.meta.type == "update" || dataparse.meta.type == "ulist") {
-        sbupdate.type = dataparse.meta.type; // Maybe I should have thought about my data structure better...
-        updateScoreboard(sbupdate);
-        updateUserList(dataparse.meta.userlist, dataparse.meta.last)
-        plCheck(dataparse.main.pl);
+    if (data.meta.type == "update" || data.meta.type == "ulist") {
+        scoreupdate.type = data.meta.type; // Maybe I should have thought about my data structure better...
+        updateScoreboard(scoreupdate);
+        updateUserList(data.meta.userlist, data.meta.last)
+        plCheck(data.main.pl);
     };
 
-    if (dataparse.meta.type == "playerlist") {
-        console.log(dataparse.meta.playerlist);
-        app.playerlist.players = keyedList(dataparse.meta.playerlist);
-        plToWork(dataparse.meta.playerlist);
+    if (data.meta.type == "playerlist") {
+        console.log(data.meta.playerlist);
+        app.playerlist.players = keyedList(data.meta.playerlist);
+        plToWork(data.meta.playerlist);
     };
 }
 
@@ -141,17 +135,9 @@ function sendScore() {
         'sbid': app.sbid
     };
 
-    const score_data = {
-        'p1name': app.workboard.p1Name,
-        'p2name': app.workboard.p2Name,
-        'p1score': app.workboard.p1Score,
-        'p2score': app.workboard.p2Score,
-        'title': app.workboard.title
-    };
-
     const payload = {
         'meta': meta_data,
-        'main': score_data,
+        'main': app.workboard,
     };
     console.log("Sending:")
     const json_text = JSON.stringify(payload);
@@ -179,13 +165,7 @@ function sendName() {
 
 // Update local Scoreboard with data from the Server
 function updateScoreboard(data) {
-
-    app.scoreboard.p1Name = data.p1name;
-    app.scoreboard.p2Name = data.p2name;
-    app.scoreboard.p1Score = data.p1score;
-    app.scoreboard.p2Score = data.p2score;
-    app.scoreboard.title = data.title;
-
+    app.scoreboard = data;
     sblinkupdate();
     syncCheck();
 }
@@ -193,12 +173,7 @@ function updateScoreboard(data) {
 // Update Local Inputs with data from the Local Scoreboard
 function syncWorkboard() {
     console.log("Syncing Workboard with Scoreboard")
-
-    app.workboard.p1Name = app.scoreboard.p1Name;
-    app.workboard.p2Name = app.scoreboard.p2Name;
-    app.workboard.p1Score = app.scoreboard.p1Score;
-    app.workboard.p2Score = app.scoreboard.p2Score;
-    app.workboard.title = app.scoreboard.title;
+    app.workboard = app.scoreboard;
     app.sync = 1;
 }
 
@@ -206,11 +181,10 @@ function syncCheck() {
     const a = JSON.stringify(app.workboard);
     const b = JSON.stringify(app.scoreboard);
 
-
     if (a == b) {
         console.log('Boards are the Same')
         app.sync = 1;
-    } else if (app.sync == -1 || app.idleTimer > app.idleThreshhold) {
+    } else if (app.sync == -1 || app.idletimer > app.idlethreshhold) {
         console.log('Force Refresh')
         syncWorkboard();
     } else {
@@ -244,16 +218,16 @@ function updateUserList(uList, uLast) {
 // Swaps sides for Scores and Names
 function swap() {
     console.log("Swapping Sides...");
-    [app.workboard.p1Name, app.workboard.p2Name, app.workboard.p1Score, app.workboard.p2Score] = [app.workboard.p2Name, app.workboard.p1Name, app.workboard.p2Score, app.workboard.p1Score];
+    [app.workboard.p1name, app.workboard.p2name, app.workboard.p1score, app.workboard.p2score] = [app.workboard.p2name, app.workboard.p1name, app.workboard.p2score, app.workboard.p1score];
     sendScore();
 };
 
 function clearall() {
     console.log("Clearing");
-    app.workboard.p1Name = '';
-    app.workboard.p2Name = '';
-    app.workboard.p1Score = '0';
-    app.workboard.p2Score = '0';
+    app.workboard.p1name = '';
+    app.workboard.p2name = '';
+    app.workboard.p1score = '0';
+    app.workboard.p2score = '0';
 }
 
 function wbIncrement(num, id) {
@@ -281,19 +255,10 @@ function slugify(text) {
         .replace(/-+$/, '');            // Trim - from end of text
 }
 
-// For the Popout Button
-//function openwindow(url) {
-//    NewWindow = window.open(url, 'newWin', 'width=600,height=301,left=20,top=20,toolbar=No,location=No,scrollbars=no,status=No,resizable=no,fullscreen=No'); NewWindow.focus(); void (0);
-//}
-
-//let idleTimer = 0;
-//let idleThreshhold = 10;
-
 function activityWatcher() {
     setInterval(function () {
-        app.idleTimer++;
-        //console.log(idleTimer + ' seconds since the user was last active');
-        if (app.idleTimer > app.idleThreshhold && app.sync == 0) {
+        app.idletimer++;
+        if (app.idletimer > app.idlethreshhold && app.sync == 0) {
             console.log('Auto Refreshing');
             syncWorkboard();
         }
@@ -301,7 +266,7 @@ function activityWatcher() {
 
     // Reset Timer with Actvity
     function activity() {
-        app.idleTimer = 0;
+        app.idletimer = 0;
     }
 
     let activityEvents = [
@@ -315,3 +280,8 @@ function activityWatcher() {
 }
 
 activityWatcher();
+
+// For the Popout Button
+//function openwindow(url) {
+//    NewWindow = window.open(url, 'newWin', 'width=600,height=301,left=20,top=20,toolbar=No,location=No,scrollbars=no,status=No,resizable=no,fullscreen=No'); NewWindow.focus(); void (0);
+//}

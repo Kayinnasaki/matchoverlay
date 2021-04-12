@@ -105,6 +105,7 @@ body {
 </div>
 </body>
 
+<script type="text/javascript" src="controls/config.js"></script>
 <script>
 const urlParams = new URLSearchParams(window.location.search);
 const nossl = urlParams.get('nossl')
@@ -114,9 +115,9 @@ console.log(sbid)
 if (sbid == undefined){window.location.search = window.location.search + "?id=default"}
 
 if (nossl == "1"){
-	var ws = new WebSocket("ws://" + window.location.hostname + ":8083");
+	var ws = new WebSocket("ws://" + config.ServerUrl + ":" + config.ScoreboardPort);
 }else{
-	var ws = new WebSocket("wss://" + window.location.hostname + ":8083");
+	var ws = new WebSocket("wss://" + config.ServerUrl + ":" + config.ScoreboardPort);
 }
 
 ws.addEventListener("open", () => {
