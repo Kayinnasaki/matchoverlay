@@ -242,8 +242,6 @@ function updateUserList(uList, uLast) {
 
 // Swaps sides for Scores and Names
 function swap() {
-    document.getElementById('serverupdate').checked = app.playerlist.subox;
-
     console.log("Swapping Sides...");
     [app.workboard.p1Name, app.workboard.p2Name, app.workboard.p1Score, app.workboard.p2Score] = [app.workboard.p2Name, app.workboard.p1Name, app.workboard.p2Score, app.workboard.p1Score];
     sendScore();
