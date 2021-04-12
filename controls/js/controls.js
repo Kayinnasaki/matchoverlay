@@ -114,21 +114,22 @@ ws.onerror = (e) => {
 
 ws.onmessage = ({ data }) => {
     console.log(data);
-    const sbparse = JSON.parse(data);
-    const sbupdate = sbparse.main;
+    const dataparse = JSON.parse(data);
+    const sbupdate = dataparse.main;
 
     // Collect user inputs and throw tem at the server
 
-    if (sbparse.meta.type == "update" || sbparse.meta.type == "ulist") {
-        sbupdate.type = sbparse.meta.type; // Maybe I should have thought about my data structure better...
+    if (dataparse.meta.type == "update" || dataparse.meta.type == "ulist") {
+        sbupdate.type = dataparse.meta.type; // Maybe I should have thought about my data structure better...
         updateScoreboard(sbupdate);
-        updateUserList(sbparse.meta.userlist, sbparse.meta.last)
-        plCheck(sbparse.main.pl);
+        updateUserList(dataparse.meta.userlist, dataparse.meta.last)
+        plCheck(dataparse.main.pl);
     };
 
-    if (sbparse.meta.type == "playerlist") {
-        plistbuild(sbparse.meta.playerlist);
-        plToWork(sbparse.meta.playerlist);
+    if (dataparse.meta.type == "playerlist") {
+        console.log(dataparse.meta.playerlist);
+        app.playerlist.players = keyedList(dataparse.meta.playerlist);
+        plToWork(dataparse.meta.playerlist);
     };
 }
 
